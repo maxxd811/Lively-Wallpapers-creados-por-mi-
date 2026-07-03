@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PS4 Inspired Wave</title>
+<style>
+html,body{margin:0;overflow:hidden;background:#2f2f2f}
+canvas{display:block;width:100vw;height:100vh}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const c=document.getElementById("c"),x=c.getContext("2d");
+function rs(){c.width=innerWidth;c.height=innerHeight}addEventListener("resize",rs);rs();
+
+let t=0,speed=1,targetSpeed=1,zoom=1,targetZoom=1;
+
+document.addEventListener("keydown",e=>{
+ if(e.code==="Space"){
+   targetSpeed=1.02;
+   targetZoom=1.01;
+   setTimeout(()=>{targetSpeed=1;targetZoom=1;},180);
+ }
+});
+
+function waveWidth(p){
+ return 42+10*Math.sin(p*8+t*0.7)+6*Math.cos(p*5-t*0.5);
+}
+
+function frame(){
+ requestAnimationFrame(frame);
+
+ speed+=(targetSpeed-speed)*0.06;
+ zoom+=(targetZoom-zoom)*0.05;
+ t+=0.003*speed;
+
+ let g=x.createLinearGradient(0,0,0,c.height);
+ g.addColorStop(0,"#4b4b4b");
+ g.addColorStop(1,"#242424");
+ x.fillStyle=g;
+ x.fillRect(0,0,c.width,c.height);
+
+ x.save();
+ x.translate(c.width/2,c.height/2);
+ x.scale(zoom,zoom);
+ x.translate(-c.width/2,-c.height/2);
+
+ const pts=[];
+ for(let X=-40;X<=c.width+40;X+=14){
+   let Y=c.height/2
+     +Math.sin(X*0.003+t)*30
+     +Math.sin(X*0.006+t*1.4)*10;
+   pts.push({x:X,y:Y});
+ }
+
+ function drawLayer(alpha,blur,scale){
+   x.beginPath();
+   for(let i=0;i<pts.length;i++){
+      let p=pts[i];
+      let prev=pts[Math.max(0,i-1)];
+      let next=pts[Math.min(pts.length-1,i+1)];
+      let dx=next.x-prev.x,dy=next.y-prev.y;
+      let len=Math.hypot(dx,dy)||1;
+      let nx=-dy/len, ny=dx/len;
+      let w=waveWidth(i/pts.length)*scale;
+      if(i===0)x.moveTo(p.x+nx*w,p.y+ny*w);
+      else x.lineTo(p.x+nx*w,p.y+ny*w);
+   }
+   for(let i=pts.length-1;i>=0;i--){
+      let p=pts[i];
+      let prev=pts[Math.max(0,i-1)];
+      let next=pts[Math.min(pts.length-1,i+1)];
+      let dx=next.x-prev.x,dy=next.y-prev.y;
+      let len=Math.hypot(dx,dy)||1;
+      let nx=-dy/len, ny=dx/len;
+      let w=waveWidth(i/pts.length)*scale;
+      x.lineTo(p.x-nx*w,p.y-ny*w);
+   }
+   x.closePath();
+   x.fillStyle=`rgba(255,255,255,${alpha})`;
+   x.shadowBlur=blur;
+   x.shadowColor="white";
+   x.fill();
+ }
+ drawLayer(0.03,120,1.8);
+ drawLayer(0.08,70,1.25);
+ drawLayer(0.22,28,1.0);
+ drawLayer(0.95,8,0.28);
+
+ x.restore();
+}
+frame();
+</script>
+</body>
+</html>
